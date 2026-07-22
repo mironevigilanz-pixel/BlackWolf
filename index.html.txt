@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SocialHybrid App</title>
+
+    <!-- Configurazione PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3670/3670151.png">
+
+    <!-- Font e Icone -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #151d30;
+            --bg-hover: #1e293b;
+            --accent-pink: #ec4899;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #38bdf8;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #243048;
+            --gradient-primary: linear-gradient(135deg, #ec4899, #8b5cf6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1280px;
+            height: 100vh;
+            display: flex;
+            background-color: #0f172a;
+            position: relative;
+        }
+
+        /* Sidebar Desktop */
+        .sidebar {
+            width: 260px;
+            border-right: 1px solid var(--border-color);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #0d1322;
+            z-index: 10;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
+            padding-left: 12px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--text-primary);
+            background-color: var(--bg-card);
+        }
+
+        .nav-item.active i {
+            color: var(--accent-pink);
+        }
+
+        .create-btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            background-color: #0b0f19;
+            padding-bottom: 70px;
+        }
+
+        .view-section {
+            display: none;
+            height: 100%;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        /* REELS & POSTS STYLES */
+        .reels-feed-container {
+            height: 100%;
+            overflow-y: mandatory;
+            scroll-snap-type: y mandatory;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .reel-card {
+            scroll-snap-align: start;
+            min-height: 100vh;
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            background-color: #000;
+        }
+
+        .reel-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .reel-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 40%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 20px 16px 80px 16px;
+        }
+
+        .posts-feed-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 16px 80px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .post-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .post-image {
+            width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+        }
+
+        .post-body {
+            padding: 16px;
+        }
+
+        /* CHAT STYLES */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 70px);
+            max-width: 800px;
+            margin: 0 auto;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .chat-header {
+            padding: 16px;
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message-bubble.me {
+            align-self: flex-end;
+            background: var(--gradient-primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-bubble.other {
+            align-self: flex-start;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 12px 16px;
+            background-color: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: white;
+            outline: none;
+        }
+
+        .send-btn {
+            background: var(--accent-pink);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* MODALE */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 500px;
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); }
+        .form-control { width: 100%; background: var(--bg-main); border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; color: white; outline: none; }
+
+        /* BOTTOM NAV MOBILE */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: rgba(13, 19, 34, 0.95);
+            border-top: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .bottom-nav-item {
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .bottom-nav-item.active {
+            color: var(--accent-pink);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .bottom-nav { display: flex; }
+            .main-content { padding-bottom: 70px; }
+            .chat-container { height: calc(100vh - 60px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- SIDEBAR DESKTOP -->
+        <aside class="sidebar">
+            <div>
+                <div class="brand-logo">
+                    <i class="fa-solid fa-shapes"></i>
+                    <span>SocialHybrid</span>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item active" id="nav-reels" onclick="switchView('reels')">
+                        <i class="fa-solid fa-film"></i>
+                        <span>Feed Video</span>
+                    </li>
+                    <li class="nav-item" id="nav-posts" onclick="switchView('posts')">
+                        <i class="fa-solid fa-newspaper"></i>
+                        <span>Feed Foto</span>
+                    </li>
+                    <li class="nav-item" id="nav-chat" onclick="switchView('chat')">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Chat Privata</span>
+                    </li>
+                </ul>
+                <button class="create-btn" onclick="openCreateModal()">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>Pubblica su Cloud</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEWS -->
+        <main class="main-content">
+            <section id="view-reels" class="view-section active">
+                <div class="reels-feed-container" id="reels-list">
+                    <p style="padding: 20px; text-align: center; color: var(--text-secondary);">Caricamento video da Supabase...</p>
+                </div>
+            </section>
+            <section id="view-posts" class="view-section">
+                <div class="posts-feed-container" id="posts-list">
+                    <p style="padding: 20px; text-align: center; color: var(--text-secondary);">Caricamento post da Supabase...</p>
+                </div>
+            </section>
+            <section id="view-chat" class="view-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <i class="fa-solid fa-comments" style="color: var(--accent-pink);"></i>
+                        <span>Stanza Chat Pubblica</span>
+                    </div>
+                    <div class="chat-messages" id="chat-messages">
+                        <p style="text-align: center; color: var(--text-secondary);">Caricamento messaggi...</p>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" class="chat-input" placeholder="Scrivi un messaggio..." onkeypress="handleKeyPress(event)">
+                        <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- BOTTOM NAV MOBILE -->
+        <nav class="bottom-nav">
+            <div class="bottom-nav-item active" id="bnav-reels" onclick="switchView('reels')"><i class="fa-solid fa-film"></i></div>
+            <div class="bottom-nav-item" id="bnav-posts" onclick="switchView('posts')"><i class="fa-solid fa-newspaper"></i></div>
+            <div class="bottom-nav-item" id="bnav-chat" onclick="switchView('chat')"><i class="fa-solid fa-paper-plane"></i></div>
+            <div class="bottom-nav-item" onclick="openCreateModal()"><i class="fa-solid fa-square-plus"></i></div>
+        </nav>
+    </div>
+
+    <!-- MODALE CREAZIONE -->
+    <div class="modal-backdrop" id="modal-create">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                <h3>Carica su Supabase Cloud</h3>
+                <span onclick="closeCreateModal()" style="cursor: pointer; font-size: 20px;">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Tipo Contenuto</label>
+                <select class="form-control" id="create-type">
+                    <option value="post">Post Foto</option>
+                    <option value="reel">Video Short</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>URL Immagine o Video MP4</label>
+                <input type="text" class="form-control" id="create-media-url" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label>Didascalia</label>
+                <input type="text" class="form-control" id="create-caption" placeholder="Scrivi una descrizione...">
+            </div>
+            <button class="create-btn" style="width: 100%;" onclick="uploadToDatabase()">Salva nel Database</button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE SUPABASE (Sostituisci qui i tuoi dati reali presi dalla dashboard)
+        const SUPABASE_URL = 'https://tglppvujxredtfijvdwd.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbHBwdnVqeHJlZHRmaWp2ZHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NDc4MDksImV4cCI6MjEwMDIyMzgwOX0.PJAMc9z3euwCOdaZ0EmADyQhe_BfVUMgMn-tLglN-SM';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const myUsername = 'me';
+
+        // REGISTRAZIONE SERVICE WORKER (PWA)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('PWA Service Worker attivo'))
+                .catch(err => console.log('Errore Service Worker:', err));
+        }
+
+        // CARICA POST
+        async function fetchPosts() {
+            const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+            if (error) return console.error('Errore post:', error);
+            
+            const container = document.getElementById('posts-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Nessun post presente.</p>';
+                return;
+            }
+            container.innerHTML = data.map(post => `
+                <article class="post-card">
+                    <img src="${post.image}" class="post-image" alt="Post">
+                    <div class="post-body">
+                        <strong>@${post.author}</strong>
+                        <p style="margin-top: 6px; color: #cbd5e1;">${post.caption}</p>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        // CARICA REELS
+        async function fetchReels() {
+            const { data, error } = await supabase.from('reels').select('*').order('created_at', { ascending: false });
+            if (error) return console.error('Errore reels:', error);
+
+            const container = document.getElementById('reels-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Nessun video presente.</p>';
+                return;
+            }
+            container.innerHTML = data.map(reel => `
+                <div class="reel-card">
+                    <video class="reel-video" loop autoplay muted playsinline src="${reel.video_url}"></video>
+                    <div class="reel-overlay">
+                        <div>
+                            <strong>@${reel.author}</strong>
+                            <p style="margin-top: 6px; color: white;">${reel.caption}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // CARICA MESSAGGI CHAT
+        async function fetchMessages() {
+            const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+            if (error) return console.error('Errore messaggi:', error);
+
+            renderMessages(data);
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('chat-messages');
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Inizia la conversazione!</p>';
+                return;
+            }
+            container.innerHTML = messages.map(msg => {
+                const isMe = msg.sender === myUsername;
+                return `
+                    <div class="message-bubble ${isMe ? 'me' : 'other'}">
+                        <div style="font-size: 11px; opacity: 0.7; margin-bottom: 2px;">@${msg.sender}</div>
+                        <div>${msg.text}</div>
+                    </div>
+                `;
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // INVIA MESSAGGIO
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            
+            const { error } = await supabase.from('messages').insert([{
+                sender: myUsername,
+                text: text
+            }]);
+
+            if (error) console.error('Errore invio messaggio:', error);
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        // ISCRIVITI AI MESSAGGI IN TEMPO REALE
+        function subscribeRealtimeChat() {
+            supabase
+                .channel('public:messages')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    fetchMessages();
+                })
+                .subscribe();
+        }
+
+        // UPLOAD MEDIA
+        async function uploadToDatabase() {
+            const type = document.getElementById('create-type').value;
+            const url = document.getElementById('create-media-url').value;
+            const caption = document.getElementById('create-caption').value;
+
+            if (!url) {
+                alert('Inserisci un URL valido');
+                return;
+            }
+
+            if (type === 'post') {
+                await supabase.from('posts').insert([{
+                    author: 'utente_app',
+                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                    image: url,
+                    caption: caption
+                }]);
+                fetchPosts();
+                switchView('posts');
+            } else {
+                await supabase.from('reels').insert([{
+                    author: 'utente_app',
+                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                    video_url: url,
+                    caption: caption,
+                    audio: 'Suono originale'
+                }]);
+                fetchReels();
+                switchView('reels');
+            }
+            closeCreateModal();
+        }
+
+        function switchView(view) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.bottom-nav-item, .nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`view-${view}`).classList.add('active');
+            
+            const navEl = document.getElementById(`nav-${view}`);
+            const bnavEl = document.getElementById(`bnav-${view}`);
+            if (navEl) navEl.classList.add('active');
+            if (bnavEl) bnavEl.classList.add('active');
+        }
+
+        function openCreateModal() {
+            document.getElementById('modal-create').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('modal-create').classList.remove('active');
+        }
+
+        // INIT
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchPosts();
+            fetchReels();
+            fetchMessages();
+            subscribeRealtimeChat();
+        });
+    </script>
+</body>
+</html>
